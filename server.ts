@@ -13,23 +13,30 @@ const JWT_SECRET = process.env.JWT_SECRET || "medicare-pro-secret-key-123";
 
 async function seedAdmin() {
   try {
-    const adminEmail = "admin@medipro.com";
-    const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
-    if (!existing) {
-      const hashedPassword = await bcrypt.hash("admin123", 10);
-      const org = await prisma.organization.create({
-        data: { name: "MediCare Pro Demo", slug: "demo-clinic" }
-      });
-      await prisma.user.create({
-        data: {
-          email: adminEmail,
-          password: hashedPassword,
-          name: "Super Admin",
-          role: "ADMIN",
-          organizationId: org.id
+    const adminEmails = ["admin@medipro.com", "ahmedfaizan2257@gmail.com"];
+    for (const adminEmail of adminEmails) {
+      const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
+      if (!existing) {
+        const hashedPassword = await bcrypt.hash("admin123", 10);
+        
+        let org = await prisma.organization.findFirst({ where: { slug: "demo-clinic" } });
+        if (!org) {
+          org = await prisma.organization.create({
+            data: { name: "MediCare Pro Demo", slug: "demo-clinic" }
+          });
         }
-      });
-      console.log("Seeded basic admin: admin@medipro.com / admin123");
+        
+        await prisma.user.create({
+          data: {
+            email: adminEmail,
+            password: hashedPassword,
+            name: adminEmail === "admin@medipro.com" ? "System Admin" : "Ahmed Faizan",
+            role: "ADMIN",
+            organizationId: org.id
+          }
+        });
+        console.log(`Seeded admin account: ${adminEmail} / admin123`);
+      }
     }
   } catch (error) {
     console.error("Seeding failed:", error);
