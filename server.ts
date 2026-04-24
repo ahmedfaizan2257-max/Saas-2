@@ -13,29 +13,34 @@ const JWT_SECRET = process.env.JWT_SECRET || "medicare-pro-secret-key-123";
 
 async function seedAdmin() {
   try {
-    const adminEmails = ["admin@medipro.com", "ahmedfaizan2257@gmail.com"];
-    for (const adminEmail of adminEmails) {
-      const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
+    const demoAccounts = [
+      { email: "admin@medipro.com", name: "System Admin", role: "ADMIN" },
+      { email: "ahmedfaizan2257@gmail.com", name: "Ahmed Faizan", role: "ADMIN" },
+      { email: "doctor@medipro.com", name: "Dr. Sarah Wilson", role: "DOCTOR" },
+      { email: "staff@medipro.com", name: "James Reception", role: "RECEPTIONIST" },
+    ];
+
+    let org = await prisma.organization.findFirst({ where: { slug: "demo-clinic" } });
+    if (!org) {
+      org = await prisma.organization.create({
+        data: { name: "MediCare Pro Demo", slug: "demo-clinic" }
+      });
+    }
+
+    for (const account of demoAccounts) {
+      const existing = await prisma.user.findUnique({ where: { email: account.email } });
       if (!existing) {
         const hashedPassword = await bcrypt.hash("admin123", 10);
-        
-        let org = await prisma.organization.findFirst({ where: { slug: "demo-clinic" } });
-        if (!org) {
-          org = await prisma.organization.create({
-            data: { name: "MediCare Pro Demo", slug: "demo-clinic" }
-          });
-        }
-        
         await prisma.user.create({
           data: {
-            email: adminEmail,
+            email: account.email,
             password: hashedPassword,
-            name: adminEmail === "admin@medipro.com" ? "System Admin" : "Ahmed Faizan",
-            role: "ADMIN",
+            name: account.name,
+            role: account.role as any,
             organizationId: org.id
           }
         });
-        console.log(`Seeded admin account: ${adminEmail} / admin123`);
+        console.log(`Seeded account: ${account.email} (${account.role}) / admin123`);
       }
     }
   } catch (error) {
