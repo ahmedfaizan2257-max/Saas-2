@@ -1,0 +1,177 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  patients      Patient[]
+  appointments  Appointment[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  password       String
+  name           String
+  role           String   // ADMIN, DOCTOR, RECEPTIONIST, BILLING_STAFF
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  prescriptions Prescription[]
+  auditLogs     AuditLog[]
+}
+
+model Patient {
+  id             String   @id @default(uuid())
+  name           String
+  dob            DateTime
+  phone          String
+  email          String?
+  diagnosis      String?
+  insuranceId    String?
+  medicalHistory String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  appointments   Appointment[]
+  labResults     LabResult[]
+  prescriptions  Prescription[]
+  invoices       Invoice[]
+  insuranceClaims InsuranceClaim[]
+}
+
+model Appointment {
+  id             String   @id @default(uuid())
+  patientId      String
+  date           DateTime
+  status         String   // UPCOMING, COMPLETED, CANCELLED
+  notes          String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patient      Patient      @relation(fields: [patientId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+}
+
+model LabResult {
+  id             String   @id @default(uuid())
+  patientId      String
+  testName       String
+  resultValue    String
+  pdfUrl         String?
+  isAbnormal     Boolean  @default(false)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id])
+}
+
+model Prescription {
+  id             String   @id @default(uuid())
+  patientId      String
+  doctorId       String
+  medications    String   // Store medications as JSON string or a simple text list
+  notes          String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id])
+  doctor  User    @relation(fields: [doctorId], references: [id])
+}
+
+model Invoice {
+  id             String   @id @default(uuid())
+  patientId      String
+  status         String   // PAID, PENDING, OVERDUE
+  totalAmount    Float
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  patient      Patient       @relation(fields: [patientId], references: [id])
+  items        InvoiceItem[]
+  claims       InsuranceClaim[]
+  payments     Payment[]
+}
+
+model InvoiceItem {
+  id          String @id @default(uuid())
+  invoiceId   String
+  description String
+  amount      Float
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model InsuranceClaim {
+  id             String   @id @default(uuid())
+  invoiceId      String
+  patientId      String
+  status         String   // SUBMITTED, IN_REVIEW, APPROVED, DENIED
+  denialReason   String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  invoiceId      String
+  amount         Float
+  method         String   // CASH, CARD, INSURANCE
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+model Notification {
+  id             String   @id @default(uuid())
+  message        String
+  type           String   // OVERDUE_PAYMENT, DENIED_CLAIM, ABNORMAL_LAB, UPCOMING_APPOINTMENT
+  read           Boolean  @default(false)
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  userId         String
+  action         String   // CREATE, UPDATE, DELETE
+  module         String
+  timestamp      DateTime @default(now())
+  ipAddress      String?
+  organizationId String
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+}

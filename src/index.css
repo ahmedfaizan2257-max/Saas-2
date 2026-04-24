@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-brand: #3b82f6;
+  --color-bg-main: #050505;
+  --color-bg-card: #0D0D0D;
+  --color-bg-header: #080808;
+  --color-bg-hover: #121212;
+  --color-bg-active: #1A1A1A;
+  --color-border: #1F1F1F;
+  --color-border-subtle: #121212;
+  
+  --color-text-primary: #E0E0E0;
+  --color-text-heading: #FFFFFF;
+  --color-text-muted: #8E8E8E;
+  --color-text-dim: #555555;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-main text-text-primary font-sans antialiased;
+  }
+}
+
+.status-badge {
+  @apply px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider;
+}
+
+.status-done { @apply bg-green-500/10 text-green-500; }
+.status-pending { @apply bg-yellow-500/10 text-yellow-500; }
+.status-problem { @apply bg-red-500/10 text-red-500; }
+.status-new { @apply bg-blue-500/10 text-blue-500; }
