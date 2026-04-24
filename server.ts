@@ -50,6 +50,7 @@ async function startServer() {
   // Auth: Register
   app.post("/api/auth/register", async (req, res) => {
     try {
+      console.log("Registration request received:", { email: req.body.email, name: req.body.name, org: req.body.organizationName });
       const registerSchema = z.object({
         email: z.string().email(),
         password: z.string().min(6),
@@ -58,20 +59,34 @@ async function startServer() {
         organizationName: z.string().min(2),
       });
 
-      const { email, password, name, role, organizationName } = registerSchema.parse(req.body);
+      const validatedData = registerSchema.safeParse(req.body);
+      if (!validatedData.success) {
+        console.warn("Registration validation failed:", validatedData.error.format());
+        return res.status(400).json({ error: "Invalid input data", details: validatedData.error.format() });
+      }
+
+      const { email, password, name, role, organizationName } = validatedData.data;
 
       const existingUser = await prisma.user.findUnique({ where: { email } });
-      if (existingUser) return res.status(400).json({ error: "User with this email already exists" });
+      if (existingUser) {
+        console.warn(`Registration failed: User ${email} already exists`);
+        return res.status(400).json({ error: "User with this email already exists" });
+      }
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Create organization and user in a transaction
       const result = await prisma.$transaction(async (tx) => {
+        console.log("Starting registration transaction...");
         // Generate a slug and check if it exists, if so append random suffix
-        let slug = organizationName.toLowerCase().replace(/ /g, "-");
+        let slug = organizationName.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+        if (!slug) slug = "clinic-" + Math.random().toString(36).substring(2, 7);
+        
+        console.log(`Generated slug: ${slug}`);
         const existingOrg = await tx.organization.findUnique({ where: { slug } });
         if (existingOrg) {
-          slug = `${slug}-${Math.floor(Math.random() * 1000)}`;
+          slug = `${slug}-${Math.floor(Math.random() * 10000)}`;
+          console.log(`Slug collision! New slug: ${slug}`);
         }
 
         const organization = await tx.organization.create({
@@ -80,6 +95,7 @@ async function startServer() {
             slug,
           },
         });
+        console.log(`Organization created: ${organization.id}`);
 
         const user = await tx.user.create({
           data: {
@@ -90,6 +106,7 @@ async function startServer() {
             organizationId: organization.id,
           },
         });
+        console.log(`User created: ${user.id}`);
 
         return { user, organization };
       });
@@ -97,8 +114,7 @@ async function startServer() {
       console.log(`Registered user: ${result.user.email}`);
       res.status(201).json({ message: "User registered successfully", user: { id: result.user.id, email: result.user.email, role: result.user.role } });
     } catch (error: any) {
-      console.error("Registration error:", error);
-      if (error instanceof z.ZodError) return res.status(400).json({ error: "Invalid input data", details: error.format() });
+      console.error("CRITICAL Registration error:", error);
       res.status(500).json({ error: "Internal server error during registration", details: error.message });
     }
   });

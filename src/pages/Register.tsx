@@ -22,15 +22,27 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      const data = await res.json();
+      
+      let data;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("Non-JSON response:", text);
+        throw new Error('Server returned a non-JSON response');
+      }
+
       if (res.ok) {
         toast.success('Clinic registered successfully! Please login.');
         navigate('/login');
       } else {
         toast.error(data.error || 'Registration failed');
+        if (data.details) console.error("Validation details:", data.details);
       }
-    } catch (error) {
-      toast.error('An error occurred');
+    } catch (error: any) {
+      console.error("Registration catch error:", error);
+      toast.error(error.message === 'Server returned a non-JSON response' ? 'Server Error- Check logs' : 'An error occurred');
     } finally {
       setLoading(false);
     }
