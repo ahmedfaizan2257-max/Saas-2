@@ -46,6 +46,19 @@ export default function LoginPage() {
         </div>
         <form className="mt-10 space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            <div className="p-3 bg-brand/5 border border-brand/20 rounded-lg mb-6">
+              <p className="text-[10px] font-bold text-brand uppercase tracking-widest mb-1">Demo Credentials</p>
+              <button 
+                type="button"
+                onClick={() => {
+                  setEmail('admin@medipro.com');
+                  setPassword('admin123');
+                }}
+                className="text-xs text-text-primary hover:text-brand underline transition-colors"
+              >
+                Auto-fill: admin@medipro.com / admin123
+              </button>
+            </div>
             <div>
               <label className="block text-xs font-bold text-text-dim uppercase tracking-widest mb-1.5 ml-1">Email address</label>
               <input

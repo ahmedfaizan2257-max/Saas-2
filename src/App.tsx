@@ -8,8 +8,16 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
+import PatientsPage from './pages/Patients';
+import AppointmentsPage from './pages/Appointments';
+import RecordsPage from './pages/Records';
+import BillingPage from './pages/Billing';
+import ClaimsPage from './pages/Claims';
+import ReportsPage from './pages/Reports';
+import AuditLogsPage from './pages/AuditLogs';
+import SettingsPage from './pages/Settings';
 import { LayoutDashboard, Users, Calendar, Beaker, FileText, CreditCard, ShieldCheck, BarChart3, Settings, LogOut, Bell, Search, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from './lib/utils';
 
 function Sidebar() {
@@ -96,8 +104,25 @@ function Sidebar() {
 
 function Header() {
   const { user } = useAuth();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('/api/notifications', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (res.ok) {
+          setNotifications(await res.json());
+        }
+      } catch (error) {}
+    };
+    if (user) fetchNotifications();
+  }, [user]);
+
   return (
-    <header className="h-16 border-bottom border-border bg-bg-header flex items-center justify-between px-8 sticky top-0 z-10">
+    <header className="h-16 border-b border-border bg-bg-header flex items-center justify-between px-8 sticky top-0 z-10">
       <div className="relative group flex items-center bg-bg-active rounded-md px-3 border border-transparent focus-within:border-brand/50 transition-all">
         <Search className="w-4 h-4 text-text-dim group-focus-within:text-brand" />
         <input 
@@ -108,10 +133,42 @@ function Header() {
       </div>
 
       <div className="flex items-center gap-6">
-        <button className="relative p-2 text-text-muted hover:text-text-heading transition-colors">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-bg-header" />
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative p-2 text-text-muted hover:text-text-heading transition-colors"
+          >
+            <Bell className="w-5 h-5" />
+            {notifications.length > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-bg-header" />
+            )}
+          </button>
+
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 bg-bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+               <div className="px-4 py-3 border-b border-border bg-bg-active/50 flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-text-heading uppercase tracking-widest">Alerts & Notifications</span>
+                  <span className="text-[10px] font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{notifications.length} New</span>
+               </div>
+               <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-[11px] text-text-dim italic">System is quiet. No new alerts.</div>
+                  ) : (
+                    notifications.map(n => (
+                      <div key={n.id} className="p-4 border-b border-border hover:bg-bg-hover transition-colors cursor-pointer">
+                         <p className="text-xs font-bold text-text-heading mb-0.5">{n.title}</p>
+                         <p className="text-[11px] text-text-muted leading-relaxed line-clamp-2">{n.message}</p>
+                         <p className="text-[9px] text-text-dim font-bold uppercase mt-2 tracking-tighter">{new Date(n.createdAt).toLocaleTimeString()}</p>
+                      </div>
+                    ))
+                  )}
+               </div>
+               <div className="p-3 border-t border-border bg-bg-active/20 text-center">
+                  <button className="text-[10px] font-bold text-brand hover:underline uppercase tracking-widest">Clear All Archives</button>
+               </div>
+            </div>
+          )}
+        </div>
 
         <div className="flex items-center gap-3 pl-6 border-l border-border">
           <div className="text-right">
@@ -265,6 +322,14 @@ export default function App() {
               <ProtectedLayout>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
+                  <Route path="/patients" element={<PatientsPage />} />
+                  <Route path="/appointments" element={<AppointmentsPage />} />
+                  <Route path="/records" element={<RecordsPage />} />
+                  <Route path="/billing" element={<BillingPage />} />
+                  <Route path="/claims" element={<ClaimsPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/audit" element={<AuditLogsPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
                   {/* Other routes will be added here */}
                   <Route path="*" element={<div className="text-text-muted">This module is coming soon...</div>} />
                 </Routes>

@@ -154,6 +154,8 @@ model Payment {
 
 model Notification {
   id             String   @id @default(uuid())
+  userId         String?
+  title          String
   message        String
   type           String   // OVERDUE_PAYMENT, DENIED_CLAIM, ABNORMAL_LAB, UPCOMING_APPOINTMENT
   read           Boolean  @default(false)
@@ -167,8 +169,9 @@ model AuditLog {
   id             String   @id @default(uuid())
   userId         String
   action         String   // CREATE, UPDATE, DELETE
-  module         String
-  timestamp      DateTime @default(now())
+  details        String?
+  module         String?
+  createdAt      DateTime @default(now())
   ipAddress      String?
   organizationId String
 

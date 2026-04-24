@@ -31,7 +31,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const res = await fetch('/api/auth/me');
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const res = await fetch('/api/auth/me', { headers });
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
@@ -39,6 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setUser(null);
         setOrganization(null);
+        // If the token is invalid, clear it
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('token');
+        }
       }
     } catch (error) {
       console.error('Auth check failed', error);
